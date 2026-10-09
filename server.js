@@ -93,7 +93,6 @@ const getFriends = db.prepare(
    JOIN users u ON f.friend_id = u.id
    WHERE f.user_id = ?`
 );
-const isFriend = db.prepare('SELECT 1 FROM friends WHERE user_id = ? AND friend_id = ?');
 
 const insertChat = db.prepare(
   'INSERT INTO chats (type, name, avatar, owner_id, created_at) VALUES (?, ?, ?, ?, ?)'
@@ -277,7 +276,22 @@ app.get('/api/chats', (req, res) => {
   }
 });
 
-// 创建私聊
+app.get('/api/messages/:chatId', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.json({ ok: false });
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    const chatId = req.params.chatId;
+    const member = db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chatId, payload.id);
+    if (!member) return res.json({ ok: false, msg: '不是成员' });
+
+    const list = getChatMessages.all(chatId).reverse();
+    res.json({ ok: true, messages: list });
+  } catch {
+    res.json({ ok: false });
+  }
+});
+
 app.post('/api/chats/private', (req, res) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.json({ ok: false });
@@ -300,7 +314,6 @@ app.post('/api/chats/private', (req, res) => {
   }
 });
 
-// 创建群组/频道
 app.post('/api/chats/group', (req, res) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.json({ ok: false });
@@ -320,12 +333,11 @@ app.post('/api/chats/group', (req, res) => {
   }
 });
 
-// 更新群组信息
 app.put('/api/chats/:id', (req, res) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.json({ ok: false });
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
+    jwt.verify(token, JWT_SECRET);
     const { name, avatar } = req.body;
     updateChatInfo.run(name, avatar || null, req.params.id);
     res.json({ ok: true });
@@ -363,8 +375,8 @@ io.use((socket, next) => {
 });
 
 /* ========== 在线用户 ========== */
-const onlineUsers = {}; // socket.id -> { id, username, nickname, avatar, lang }
-const userSockets = {}; // user.id -> socket.id
+const onlineUsers = {};
+const userSockets = {};
 
 io.on('connection', (socket) => {
   const u = socket.user;
@@ -381,17 +393,13 @@ io.on('connection', (socket) => {
   onlineUsers[socket.id] = me;
   userSockets[me.id] = socket.id;
 
-  // 加入自己的所有会话房间
   const myChats = getUserChats.all(me.id);
   myChats.forEach(c => socket.join('chat_' + c.id));
 
-  // 上线通知
   io.emit('online', { userId: me.id, online: true });
 
-  // 加载会话列表
   socket.emit('chats', myChats.map(c => ({ ...c, members: getChatMembers.all(c.id) })));
 
-  // 发消息
   socket.on('send_message', async ({ chatId, text, image }) => {
     const time = now();
     const srcLang = detectLang(text || '');
@@ -400,7 +408,6 @@ io.on('connection', (socket) => {
 
     const members = getChatMembers.all(chatId);
 
-    // 给每个成员发翻译后的版本
     for (const m of members) {
       const targetSocketId = userSockets[m.id];
       if (!targetSocketId) continue;
@@ -425,13 +432,11 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 已读
   socket.on('mark_read', ({ chatId }) => {
     markRead.run(chatId, me.id);
     io.to('chat_' + chatId).emit('read', { chatId, userId: me.id });
   });
 
-  // 撤回
   socket.on('revoke', ({ id, chatId }) => {
     const msg = getMsgById.get(id);
     if (!msg || msg.user_id !== me.id) return;
@@ -439,12 +444,10 @@ io.on('connection', (socket) => {
     io.to('chat_' + chatId).emit('revoked', { id, chatId });
   });
 
-  // 加入会话房间
   socket.on('join_chat', (chatId) => {
     socket.join('chat_' + chatId);
   });
 
-  // 更新资料
   socket.on('update_profile', ({ nickname, avatar }) => {
     updateUser.run(nickname, avatar, me.id);
     me.nickname = nickname;
