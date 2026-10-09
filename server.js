@@ -1,3 +1,4 @@
+const https = require('https');
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -157,25 +158,41 @@ io.on('connection', (socket) => {
   io.emit('system', sysText);
   io.emit('userlist', Object.values(users));
 
-  // 公共消息
-  socket.on('message', (payload) => {
+    // 公共消息
+  socket.on('message', async (payload) => {
     const time = now();
     const text = typeof payload === 'string' ? payload : payload.text;
     const image = typeof payload === 'string' ? null : payload.image;
+
+    // 翻译
+    const translated = text ? await autoTranslate(text) : '';
+
     const r = insertMsg.run(socket.user.id, nickname, text || '', 'normal', 'public', null, image || null, 0, 0, time, Date.now());
-    io.emit('message', { id: r.lastInsertRowid, nickname, text: text || '', image, time, room: 'public' });
+    io.emit('message', {
+      id: r.lastInsertRowid,
+      nickname,
+      text: text || '',
+      translated,
+      image,
+      time,
+      room: 'public'
+    });
   });
 
-  // 私聊
-  socket.on('private', ({ to, text, image }) => {
+    // 私聊
+  socket.on('private', async ({ to, text, image }) => {
     const time = now();
     const targetSocket = nickToSocket[to];
     if (!targetSocket) {
       socket.emit('private_error', { to, msg: '对方不在线' });
       return;
     }
+
+    // 翻译
+    const translated = text ? await autoTranslate(text) : '';
+
     const r = insertMsg.run(socket.user.id, nickname, text || '', 'normal', 'private', to, image || null, 0, 0, time, Date.now());
-    const msg = { id: r.lastInsertRowid, from: nickname, to, text: text || '', image, time };
+    const msg = { id: r.lastInsertRowid, from: nickname, to, text: text || '', translated, image, time };
 
     io.to(targetSocket).emit('private', msg);
     socket.emit('private', { ...msg, self: true });
@@ -219,6 +236,41 @@ io.on('connection', (socket) => {
 
 function now() {
   return new Date().toLocaleTimeString('zh-CN', { hour12: false });
+}
+/* ========== 翻译 ========== */
+function translate(text, from, to) {
+  return new Promise((resolve) => {
+    if (!text) return resolve('');
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${from}&tl=${to}&dt=t&q=${encodeURIComponent(text)}`;
+    https.get(url, (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          const result = json[0].map(item => item[0]).join('');
+          resolve(result);
+        } catch {
+          resolve(text); // 翻译失败就返回原文
+        }
+      });
+    }).on('error', () => resolve(text));
+  });
+}
+
+// 判断是否包含中文
+function hasChinese(text) {
+  return /[\u4e00-\u9fa5]/.test(text);
+}
+
+// 自动翻译：中文→越南语，其他→中文
+async function autoTranslate(text) {
+  if (!text) return '';
+  if (hasChinese(text)) {
+    return await translate(text, 'zh-CN', 'vi');
+  } else {
+    return await translate(text, 'vi', 'zh-CN');
+  }
 }
 
 const PORT = process.env.PORT || 3000;
