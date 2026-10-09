@@ -29,20 +29,47 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
+    nickname TEXT,
+    avatar TEXT,
     lang TEXT DEFAULT 'zh',
     created_at INTEGER NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS friends (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    friend_id INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    UNIQUE(user_id, friend_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS chats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT DEFAULT 'private',
+    name TEXT,
+    avatar TEXT,
+    owner_id INTEGER,
+    created_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS chat_members (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    chat_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    role TEXT DEFAULT 'member',
+    joined_at INTEGER NOT NULL,
+    UNIQUE(chat_id, user_id)
+  );
+
   CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    chat_id INTEGER NOT NULL,
     user_id INTEGER,
     nickname TEXT NOT NULL,
     text TEXT NOT NULL,
     type TEXT DEFAULT 'normal',
-    room TEXT DEFAULT 'public',
-    to_user TEXT,
     image TEXT,
-    read INTEGER DEFAULT 0,
+    status TEXT DEFAULT 'sent',
     revoked INTEGER DEFAULT 0,
     time TEXT NOT NULL,
     created_at INTEGER NOT NULL
@@ -50,34 +77,64 @@ db.exec(`
 `);
 
 const insertUser = db.prepare(
-  'INSERT INTO users (username, password, lang, created_at) VALUES (?, ?, ?, ?)'
+  'INSERT INTO users (username, password, nickname, avatar, lang, created_at) VALUES (?, ?, ?, ?, ?, ?)'
 );
 const findUser = db.prepare('SELECT * FROM users WHERE username = ?');
+const findUserById = db.prepare('SELECT * FROM users WHERE id = ?');
+const updateUser = db.prepare('UPDATE users SET nickname = ?, avatar = ? WHERE id = ?');
+const searchUsers = db.prepare(
+  "SELECT id, username, nickname, avatar FROM users WHERE username LIKE ? OR nickname LIKE ? LIMIT 20"
+);
+const insertFriend = db.prepare(
+  'INSERT OR IGNORE INTO friends (user_id, friend_id, created_at) VALUES (?, ?, ?)'
+);
+const getFriends = db.prepare(
+  `SELECT u.id, u.username, u.nickname, u.avatar FROM friends f
+   JOIN users u ON f.friend_id = u.id
+   WHERE f.user_id = ?`
+);
+const isFriend = db.prepare('SELECT 1 FROM friends WHERE user_id = ? AND friend_id = ?');
+
+const insertChat = db.prepare(
+  'INSERT INTO chats (type, name, avatar, owner_id, created_at) VALUES (?, ?, ?, ?, ?)'
+);
+const getChatById = db.prepare('SELECT * FROM chats WHERE id = ?');
+const insertMember = db.prepare(
+  'INSERT OR IGNORE INTO chat_members (chat_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)'
+);
+const getChatMembers = db.prepare(
+  `SELECT u.id, u.username, u.nickname, u.avatar, cm.role FROM chat_members cm
+   JOIN users u ON cm.user_id = u.id
+   WHERE cm.chat_id = ?`
+);
+const getUserChats = db.prepare(
+  `SELECT c.* FROM chats c
+   JOIN chat_members cm ON c.id = cm.chat_id
+   WHERE cm.user_id = ?
+   ORDER BY c.created_at DESC`
+);
+const findPrivateChat = db.prepare(
+  `SELECT c.id FROM chats c
+   JOIN chat_members m1 ON c.id = m1.chat_id AND m1.user_id = ?
+   JOIN chat_members m2 ON c.id = m2.chat_id AND m2.user_id = ?
+   WHERE c.type = 'private'
+   LIMIT 1`
+);
+const updateChatInfo = db.prepare('UPDATE chats SET name = ?, avatar = ? WHERE id = ?');
+
 const insertMsg = db.prepare(
-  `INSERT INTO messages (user_id, nickname, text, type, room, to_user, image, read, revoked, time, created_at)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  `INSERT INTO messages (chat_id, user_id, nickname, text, type, image, status, revoked, time, created_at)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 );
-const getPublic = db.prepare(
-  `SELECT id, nickname, text, type, image, revoked, time FROM messages
-   WHERE room = 'public' AND revoked = 0 ORDER BY id DESC LIMIT 100`
-);
-const getPrivate = db.prepare(
-  `SELECT id, nickname, text, type, image, revoked, read, time FROM messages
-   WHERE room = 'private' AND revoked = 0
-   AND ((nickname = ? AND to_user = ?) OR (nickname = ? AND to_user = ?))
-   ORDER BY id DESC LIMIT 100`
+const getChatMessages = db.prepare(
+  `SELECT id, user_id, nickname, text, type, image, status, revoked, time, created_at
+   FROM messages WHERE chat_id = ? AND revoked = 0 ORDER BY id DESC LIMIT 100`
 );
 const getMsgById = db.prepare('SELECT * FROM messages WHERE id = ?');
 const revokeMsg = db.prepare('UPDATE messages SET revoked = 1 WHERE id = ?');
 const markRead = db.prepare(
-  `UPDATE messages SET read = 1 WHERE room = 'private' AND to_user = ? AND nickname = ?`
+  `UPDATE messages SET status = 'read' WHERE chat_id = ? AND user_id != ? AND status = 'sent'`
 );
-const getUnread = db.prepare(
-  `SELECT nickname, COUNT(*) as cnt FROM messages
-   WHERE room = 'private' AND to_user = ? AND read = 0 AND revoked = 0
-   GROUP BY nickname`
-);
-const getAllUsers = db.prepare('SELECT username FROM users ORDER BY id');
 
 /* ========== 翻译 ========== */
 function translate(text, from, to) {
@@ -114,7 +171,7 @@ app.post('/api/register', (req, res) => {
 
   const hash = bcrypt.hashSync(password, 10);
   const userLang = lang || 'zh';
-  const r = insertUser.run(username, hash, userLang, Date.now());
+  const r = insertUser.run(username, hash, username, null, userLang, Date.now());
   const token = jwt.sign({ id: r.lastInsertRowid, username, lang: userLang }, JWT_SECRET, { expiresIn: '7d' });
   res.json({ ok: true, token, username, lang: userLang });
 });
@@ -130,9 +187,151 @@ app.post('/api/login', (req, res) => {
   res.json({ ok: true, token, username: user.username, lang: user.lang || 'zh' });
 });
 
-app.get('/api/users', (req, res) => {
-  const list = getAllUsers.all().map(u => u.username);
+/* ========== 用户资料 ========== */
+app.get('/api/me', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.json({ ok: false });
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    const user = findUserById.get(payload.id);
+    if (!user) return res.json({ ok: false });
+    res.json({ ok: true, user: { id: user.id, username: user.username, nickname: user.nickname || user.username, avatar: user.avatar, lang: user.lang } });
+  } catch {
+    res.json({ ok: false });
+  }
+});
+
+app.put('/api/me', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.json({ ok: false });
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    const { nickname, avatar } = req.body;
+    updateUser.run(nickname || payload.username, avatar || null, payload.id);
+    res.json({ ok: true });
+  } catch {
+    res.json({ ok: false });
+  }
+});
+
+app.get('/api/search', (req, res) => {
+  const q = req.query.q || '';
+  if (!q) return res.json({ ok: true, users: [] });
+  const list = searchUsers.all(`%${q}%`, `%${q}%`);
   res.json({ ok: true, users: list });
+});
+
+/* ========== 好友 ========== */
+app.get('/api/friends', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.json({ ok: false });
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    const list = getFriends.all(payload.id);
+    res.json({ ok: true, friends: list });
+  } catch {
+    res.json({ ok: false });
+  }
+});
+
+app.post('/api/friends', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.json({ ok: false });
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    const { friendId } = req.body;
+    insertFriend.run(payload.id, friendId, Date.now());
+    insertFriend.run(friendId, payload.id, Date.now());
+    res.json({ ok: true });
+  } catch {
+    res.json({ ok: false });
+  }
+});
+
+app.delete('/api/friends/:id', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.json({ ok: false });
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    db.prepare('DELETE FROM friends WHERE user_id = ? AND friend_id = ?').run(payload.id, req.params.id);
+    res.json({ ok: true });
+  } catch {
+    res.json({ ok: false });
+  }
+});
+
+/* ========== 会话 ========== */
+app.get('/api/chats', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.json({ ok: false });
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    const chats = getUserChats.all(payload.id);
+    const result = chats.map(c => {
+      const members = getChatMembers.all(c.id);
+      return { ...c, members };
+    });
+    res.json({ ok: true, chats: result });
+  } catch {
+    res.json({ ok: false });
+  }
+});
+
+// 创建私聊
+app.post('/api/chats/private', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.json({ ok: false });
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    const { userId } = req.body;
+    if (userId === payload.id) return res.json({ ok: false, msg: '不能和自己聊天' });
+
+    let existing = findPrivateChat.get(payload.id, userId);
+    if (existing) return res.json({ ok: true, chatId: existing.id });
+
+    const r = insertChat.run('private', null, null, payload.id, Date.now());
+    const chatId = r.lastInsertRowid;
+    insertMember.run(chatId, payload.id, 'member', Date.now());
+    insertMember.run(chatId, userId, 'member', Date.now());
+
+    res.json({ ok: true, chatId });
+  } catch {
+    res.json({ ok: false });
+  }
+});
+
+// 创建群组/频道
+app.post('/api/chats/group', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.json({ ok: false });
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    const { name, avatar, type, memberIds } = req.body;
+    if (!name) return res.json({ ok: false, msg: '名称不能为空' });
+
+    const r = insertChat.run(type || 'group', name, avatar || null, payload.id, Date.now());
+    const chatId = r.lastInsertRowid;
+    insertMember.run(chatId, payload.id, 'owner', Date.now());
+    (memberIds || []).forEach(id => insertMember.run(chatId, id, 'member', Date.now()));
+
+    res.json({ ok: true, chatId });
+  } catch {
+    res.json({ ok: false });
+  }
+});
+
+// 更新群组信息
+app.put('/api/chats/:id', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.json({ ok: false });
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    const { name, avatar } = req.body;
+    updateChatInfo.run(name, avatar || null, req.params.id);
+    res.json({ ok: true });
+  } catch {
+    res.json({ ok: false });
+  }
 });
 
 /* ========== 图片上传 ========== */
@@ -164,141 +363,105 @@ io.use((socket, next) => {
 });
 
 /* ========== 在线用户 ========== */
-const users = {};
-const nickToSocket = {};
+const onlineUsers = {}; // socket.id -> { id, username, nickname, avatar, lang }
+const userSockets = {}; // user.id -> socket.id
 
 io.on('connection', (socket) => {
-  const nickname = socket.user.username;
-  const myLang = socket.user.lang || 'zh';
-  users[socket.id] = nickname;
-  nickToSocket[nickname] = socket.id;
+  const u = socket.user;
+  const dbUser = findUserById.get(u.id);
+  if (!dbUser) return socket.disconnect();
 
-  // 发公共历史（翻译成自己的语言）
-  const history = getPublic.all().reverse();
-  (async () => {
-    const list = [];
-    for (const m of history) {
-      const srcLang = detectLang(m.text || '');
-      const translated = m.text ? await translate(m.text, srcLang, myLang) : '';
-      list.push({ ...m, text: translated });
-    }
-    socket.emit('history', { room: 'public', list });
-  })();
+  const me = {
+    id: dbUser.id,
+    username: dbUser.username,
+    nickname: dbUser.nickname || dbUser.username,
+    avatar: dbUser.avatar,
+    lang: dbUser.lang || 'zh',
+  };
+  onlineUsers[socket.id] = me;
+  userSockets[me.id] = socket.id;
 
-  const unread = getUnread.all(nickname);
-  socket.emit('unread', unread);
+  // 加入自己的所有会话房间
+  const myChats = getUserChats.all(me.id);
+  myChats.forEach(c => socket.join('chat_' + c.id));
 
-  const sysText = `${nickname} 加入了聊天室`;
-  insertMsg.run(null, '系统', sysText, 'system', 'public', null, null, 0, 0, now(), Date.now());
-  io.emit('system', sysText);
-  io.emit('userlist', Object.values(users));
+  // 上线通知
+  io.emit('online', { userId: me.id, online: true });
 
-  // 公共消息
-  socket.on('message', async (payload) => {
+  // 加载会话列表
+  socket.emit('chats', myChats.map(c => ({ ...c, members: getChatMembers.all(c.id) })));
+
+  // 发消息
+  socket.on('send_message', async ({ chatId, text, image }) => {
     const time = now();
-    const text = typeof payload === 'string' ? payload : payload.text;
-    const image = typeof payload === 'string' ? null : payload.image;
-
     const srcLang = detectLang(text || '');
-    const r = insertMsg.run(socket.user.id, nickname, text || '', 'normal', 'public', null, image || null, 0, 0, time, Date.now());
+    const r = insertMsg.run(chatId, me.id, me.nickname, text || '', 'normal', image || null, 'sent', 0, time, Date.now());
     const msgId = r.lastInsertRowid;
 
-    for (const [sid, uname] of Object.entries(users)) {
-      const targetSocket = io.sockets.sockets.get(sid);
+    const members = getChatMembers.all(chatId);
+
+    // 给每个成员发翻译后的版本
+    for (const m of members) {
+      const targetSocketId = userSockets[m.id];
+      if (!targetSocketId) continue;
+      const targetSocket = io.sockets.sockets.get(targetSocketId);
       if (!targetSocket) continue;
+
       const targetLang = targetSocket.user.lang || 'zh';
       const translated = text ? await translate(text, srcLang, targetLang) : '';
-      targetSocket.emit('message', {
+
+      targetSocket.emit('new_message', {
         id: msgId,
-        nickname,
+        chatId,
+        userId: me.id,
+        nickname: me.nickname,
+        avatar: me.avatar,
         text: translated,
         image,
         time,
-        room: 'public',
+        status: 'sent',
+        self: m.id === me.id,
       });
     }
   });
 
-  // 私聊
-  socket.on('private', async ({ to, text, image }) => {
-    const time = now();
-    const targetSocket = nickToSocket[to];
-    if (!targetSocket) {
-      socket.emit('private_error', { to, msg: '对方不在线' });
-      return;
-    }
-
-    const srcLang = detectLang(text || '');
-    const targetSock = io.sockets.sockets.get(targetSocket);
-    const targetLang = targetSock ? (targetSock.user.lang || 'zh') : 'zh';
-    const translated = text ? await translate(text, srcLang, targetLang) : '';
-
-    const r = insertMsg.run(socket.user.id, nickname, text || '', 'normal', 'private', to, image || null, 0, 0, time, Date.now());
-
-    // 发给对方：翻译后
-    io.to(targetSocket).emit('private', {
-      id: r.lastInsertRowid,
-      from: nickname,
-      to,
-      text: translated,
-      image,
-      time,
-    });
-
-    // 发给自己：原文
-    socket.emit('private', {
-      id: r.lastInsertRowid,
-      from: nickname,
-      to,
-      text: text || '',
-      image,
-      time,
-      self: true,
-    });
-  });
-
-  // 私聊历史
-  socket.on('private_history', async (other) => {
-    const list = getPrivate.all(nickname, other, other, nickname).reverse();
-    const result = [];
-    for (const m of list) {
-      const srcLang = detectLang(m.text || '');
-      const translated = m.text ? await translate(m.text, srcLang, myLang) : '';
-      result.push({ ...m, text: translated });
-    }
-    socket.emit('private_history', { other, list: result });
-    markRead.run(nickname, other);
-    socket.emit('unread', getUnread.all(nickname));
+  // 已读
+  socket.on('mark_read', ({ chatId }) => {
+    markRead.run(chatId, me.id);
+    io.to('chat_' + chatId).emit('read', { chatId, userId: me.id });
   });
 
   // 撤回
-  socket.on('revoke', ({ id, to }) => {
+  socket.on('revoke', ({ id, chatId }) => {
     const msg = getMsgById.get(id);
-    if (!msg) return;
-    if (msg.nickname !== nickname) return;
-
+    if (!msg || msg.user_id !== me.id) return;
     revokeMsg.run(id);
-    if (msg.room === 'public') {
-      io.emit('revoked', { id, room: 'public' });
-    } else {
-      const targetSocket = nickToSocket[to];
-      if (targetSocket) io.to(targetSocket).emit('revoked', { id, room: 'private', from: nickname });
-      socket.emit('revoked', { id, room: 'private' });
-    }
+    io.to('chat_' + chatId).emit('revoked', { id, chatId });
+  });
+
+  // 加入会话房间
+  socket.on('join_chat', (chatId) => {
+    socket.join('chat_' + chatId);
+  });
+
+  // 更新资料
+  socket.on('update_profile', ({ nickname, avatar }) => {
+    updateUser.run(nickname, avatar, me.id);
+    me.nickname = nickname;
+    me.avatar = avatar;
+    onlineUsers[socket.id] = me;
+    io.emit('profile_updated', { userId: me.id, nickname, avatar });
   });
 
   socket.on('disconnect', () => {
-    delete users[socket.id];
-    delete nickToSocket[nickname];
-    const sysText = `${nickname} 离开了聊天室`;
-    insertMsg.run(null, '系统', sysText, 'system', 'public', null, null, 0, 0, now(), Date.now());
-    io.emit('system', sysText);
-    io.emit('userlist', Object.values(users));
+    delete onlineUsers[socket.id];
+    delete userSockets[me.id];
+    io.emit('online', { userId: me.id, online: false });
   });
 });
 
 function now() {
-  return new Date().toLocaleTimeString('zh-CN', { hour12: false });
+  return new Date().toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit' });
 }
 
 const PORT = process.env.PORT || 3000;
