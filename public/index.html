@@ -56,12 +56,14 @@
   .login-box .logo { text-align: center; font-size: 40px; margin-bottom: 8px; }
   .login-box h2 { text-align: center; color: var(--text); margin-bottom: 8px; font-size: 22px; }
   .login-box .subtitle { text-align: center; color: var(--text-light); font-size: 13px; margin-bottom: 24px; }
-  .login-box input {
+  .login-box input,
+  .login-box select {
     width: 100%; padding: 14px 16px; border: 2px solid var(--border);
     border-radius: 12px; font-size: 14px; margin-bottom: 12px; outline: none;
     background: var(--sidebar-bg); color: var(--text);
   }
-  .login-box input:focus { border-color: var(--primary); }
+  .login-box input:focus,
+  .login-box select:focus { border-color: var(--primary); }
   .login-box button {
     width: 100%; padding: 14px; border: none; border-radius: 12px;
     background: var(--bubble-me); color: #fff; font-size: 15px; font-weight: 600;
@@ -151,17 +153,6 @@
   }
   .msg .bubble img { max-width: 200px; max-height: 200px; border-radius: 8px; display: block; }
   .msg .bubble .revoked { color: var(--text-lighter); font-style: italic; font-size: 13px; }
-
-  .msg .bubble .translated {
-    margin-top: 6px;
-    padding-top: 6px;
-    border-top: 1px dashed rgba(0,0,0,0.15);
-    font-size: 13px;
-    opacity: 0.85;
-  }
-  .msg.me .bubble .translated {
-    border-top-color: rgba(255,255,255,0.3);
-  }
 
   .msg.me { align-items: flex-end; }
   .msg.me .bubble {
@@ -269,6 +260,10 @@
   <div class="msg" id="loginMsg"></div>
   <input id="username" placeholder="用户名" maxlength="12">
   <input id="password" type="password" placeholder="密码">
+  <select id="langSelect">
+    <option value="zh">中文</option>
+    <option value="vi">Tiếng Việt（越南语）</option>
+  </select>
   <button id="btnLogin">登录</button>
   <button id="btnRegister" class="secondary">注册新账号</button>
 </div>
@@ -344,23 +339,25 @@ async function doLogin() {
   if (!username || !password) { showMsg('请填写用户名和密码'); return; }
   const r = await post('/api/login', { username, password });
   if (!r.ok) { showMsg(r.msg); return; }
-  onLoginSuccess(r.token, r.username);
+  onLoginSuccess(r.token, r.username, r.lang);
 }
 
 async function doRegister() {
   const username = $('username').value.trim();
   const password = $('password').value;
+  const lang = $('langSelect').value;
   if (!username || !password) { showMsg('请填写用户名和密码'); return; }
-  const r = await post('/api/register', { username, password });
+  const r = await post('/api/register', { username, password, lang });
   if (!r.ok) { showMsg(r.msg); return; }
-  onLoginSuccess(r.token, r.username);
+  onLoginSuccess(r.token, r.username, r.lang);
 }
 
 function showMsg(text) { $('loginMsg').textContent = text; }
 
-function onLoginSuccess(token, username) {
+function onLoginSuccess(token, username, lang) {
   localStorage.setItem('chat_token', token);
   localStorage.setItem('chat_username', username);
+  localStorage.setItem('chat_lang', lang || 'zh');
   myNick = username;
   $('loginBox').style.display = 'none';
   $('chatBox').style.display = 'block';
@@ -386,6 +383,7 @@ $('logout').onclick = () => {
   if (!confirm('确定退出？')) return;
   localStorage.removeItem('chat_token');
   localStorage.removeItem('chat_username');
+  localStorage.removeItem('chat_lang');
   if (socket) socket.disconnect();
   location.reload();
 };
@@ -420,7 +418,6 @@ function connectSocket(token) {
         id: data.id,
         nickname: data.from,
         text: data.text,
-        translated: data.translated,
         image: data.image,
         time: data.time,
         room: 'private',
@@ -534,7 +531,6 @@ function switchToPublic() {
 
 document.querySelector('#publicList .item').onclick = switchToPublic;
 
-/* ========== 渲染消息（带翻译） ========== */
 function renderMsg(data, scroll = true) {
   const isMe = data.me !== undefined ? data.me : (data.nickname === myNick);
   const div = document.createElement('div');
@@ -552,10 +548,6 @@ function renderMsg(data, scroll = true) {
       content = `<img src="${data.image}" onclick="window.open(this.src)">`;
     } else {
       content = escapeHtml(data.text);
-      // 有翻译且和原文不一样，就显示翻译
-      if (data.translated && data.translated !== data.text) {
-        content += `<div class="translated">${escapeHtml(data.translated)}</div>`;
-      }
     }
 
     let revokeBtn = '';
