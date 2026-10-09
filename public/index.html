@@ -41,11 +41,9 @@
     align-items: center;
     padding: 16px;
     overflow: hidden;
-    transition: background 0.3s;
   }
   body.dark { background: #0f172a; }
 
-  /* 登录页 */
   .login-box {
     background: rgba(255, 255, 255, 0.98);
     padding: 40px 36px;
@@ -53,45 +51,35 @@
     width: 100%;
     max-width: 380px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
-    animation: fadeUp 0.4s ease;
   }
   body.dark .login-box { background: #1e293b; color: #f1f5f9; }
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
   .login-box .logo { text-align: center; font-size: 40px; margin-bottom: 8px; }
   .login-box h2 { text-align: center; color: var(--text); margin-bottom: 8px; font-size: 22px; }
   .login-box .subtitle { text-align: center; color: var(--text-light); font-size: 13px; margin-bottom: 24px; }
   .login-box input {
     width: 100%; padding: 14px 16px; border: 2px solid var(--border);
     border-radius: 12px; font-size: 14px; margin-bottom: 12px; outline: none;
-    transition: all 0.2s; background: var(--sidebar-bg); color: var(--text);
+    background: var(--sidebar-bg); color: var(--text);
   }
-  .login-box input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(99,102,241,0.1); }
+  .login-box input:focus { border-color: var(--primary); }
   .login-box button {
     width: 100%; padding: 14px; border: none; border-radius: 12px;
     background: var(--bubble-me); color: #fff; font-size: 15px; font-weight: 600;
-    cursor: pointer; margin-top: 6px; transition: all 0.2s;
-    box-shadow: 0 4px 12px rgba(99,102,241,0.3);
+    cursor: pointer; margin-top: 6px;
   }
-  .login-box button:hover { transform: translateY(-1px); }
   .login-box button.secondary {
     background: var(--sidebar-bg); color: var(--primary);
-    border: 2px solid var(--primary-light); box-shadow: none;
+    border: 2px solid var(--primary-light);
   }
   .login-box .msg { color: #ef4444; font-size: 13px; text-align: center; min-height: 18px; margin-bottom: 8px; }
 
-  /* 聊天页 */
   .chat {
     width: 100%; max-width: 900px; height: 90vh;
     background: var(--sidebar-bg); border-radius: 20px;
     box-shadow: var(--shadow); display: none; overflow: hidden;
-    animation: fadeUp 0.4s ease;
   }
   .chat-inner { display: flex; height: 100%; }
 
-  /* 左侧栏 */
   .sidebar {
     width: 220px; background: var(--sidebar-bg);
     border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0;
@@ -109,26 +97,23 @@
   .sidebar .me .icon-btn {
     background: rgba(255,255,255,0.2); border: none; color: #fff;
     width: 28px; height: 28px; border-radius: 8px; font-size: 14px;
-    cursor: pointer; margin-left: 4px; transition: all 0.2s;
+    cursor: pointer; margin-left: 4px;
   }
-  .sidebar .me .icon-btn:hover { background: rgba(255,255,255,0.35); }
-
   .sidebar .section {
     padding: 12px 18px 6px; font-size: 11px; color: var(--text-lighter);
-    font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    font-weight: 600; text-transform: uppercase;
   }
   .sidebar .list { flex: 1; overflow-y: auto; padding: 0 8px 8px; }
   .sidebar .item {
     padding: 10px 12px; font-size: 13px; cursor: pointer; border-radius: 10px;
-    transition: all 0.15s; display: flex; align-items: center;
-    color: var(--text); margin-bottom: 2px; position: relative;
+    display: flex; align-items: center; color: var(--text); margin-bottom: 2px;
   }
   .sidebar .item:hover { background: var(--bg); }
   .sidebar .item.active { background: var(--primary-light); color: var(--primary-dark); font-weight: 600; }
   body.dark .sidebar .item.active { background: rgba(99,102,241,0.2); color: #a5b4fc; }
   .sidebar .item .dot {
     display: inline-block; width: 8px; height: 8px; background: #10b981;
-    border-radius: 50%; margin-right: 10px; box-shadow: 0 0 0 3px rgba(16,185,129,0.15); flex-shrink: 0;
+    border-radius: 50%; margin-right: 10px; flex-shrink: 0;
   }
   .sidebar .item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sidebar .item .badge {
@@ -136,8 +121,7 @@
     padding: 2px 6px; border-radius: 10px; margin-left: 4px;
   }
 
-  /* 右侧 */
-  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
   .main .header {
     padding: 16px 24px; border-bottom: 1px solid var(--border);
     display: flex; justify-content: space-between; align-items: center; background: var(--sidebar-bg);
@@ -153,11 +137,7 @@
     background: var(--chat-bg); display: flex; flex-direction: column; gap: 12px;
   }
 
-  .msg { display: flex; flex-direction: column; animation: msgIn 0.25s ease; }
-  @keyframes msgIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+  .msg { display: flex; flex-direction: column; }
   .msg .meta {
     font-size: 11px; color: var(--text-lighter); margin-bottom: 4px; padding: 0 4px;
     display: flex; align-items: center; gap: 6px;
@@ -167,16 +147,26 @@
     background: var(--bubble-other); font-size: 14px; line-height: 1.5;
     max-width: 70%; word-break: break-word;
     box-shadow: 0 1px 3px rgba(0,0,0,0.06); color: var(--text);
-    align-self: flex-start; border-bottom-left-radius: 4px; position: relative;
+    align-self: flex-start; border-bottom-left-radius: 4px;
   }
   .msg .bubble img { max-width: 200px; max-height: 200px; border-radius: 8px; display: block; }
   .msg .bubble .revoked { color: var(--text-lighter); font-style: italic; font-size: 13px; }
+
+  .msg .bubble .translated {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed rgba(0,0,0,0.15);
+    font-size: 13px;
+    opacity: 0.85;
+  }
+  .msg.me .bubble .translated {
+    border-top-color: rgba(255,255,255,0.3);
+  }
 
   .msg.me { align-items: flex-end; }
   .msg.me .bubble {
     background: var(--bubble-me); color: #fff; align-self: flex-end;
     border-bottom-left-radius: 16px; border-bottom-right-radius: 4px;
-    box-shadow: 0 2px 8px rgba(99,102,241,0.25);
   }
   .msg.me .meta { text-align: right; flex-direction: row-reverse; }
 
@@ -192,7 +182,6 @@
   }
   body.dark .msg.system .bubble { background: rgba(255,255,255,0.06); }
 
-  /* 撤回按钮 */
   .msg .revoke-btn {
     display: none; background: none; border: none; color: var(--text-lighter);
     font-size: 11px; cursor: pointer; padding: 0 4px;
@@ -200,10 +189,6 @@
   .msg:hover .revoke-btn { display: inline; }
   .msg .revoke-btn:hover { color: #ef4444; }
 
-  /* 已读状态 */
-  .msg .read-status { font-size: 10px; color: var(--text-lighter); margin-top: 2px; padding: 0 4px; }
-
-  /* 输入区 */
   .input-area {
     display: flex; padding: 16px 24px; border-top: 1px solid var(--border);
     background: var(--sidebar-bg); gap: 10px; align-items: center;
@@ -211,24 +196,21 @@
   .input-area .icon-btn {
     width: 40px; height: 40px; border: none; border-radius: 50%;
     background: var(--bg); color: var(--text-light); font-size: 18px;
-    cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+    cursor: pointer; flex-shrink: 0;
   }
   .input-area .icon-btn:hover { background: var(--primary-light); color: var(--primary); }
   .input-area input[type="text"] {
     flex: 1; padding: 12px 18px; border: 2px solid var(--border);
     border-radius: 24px; font-size: 14px; outline: none;
-    transition: all 0.2s; background: var(--bg); color: var(--text);
+    background: var(--bg); color: var(--text);
   }
   .input-area input:focus { border-color: var(--primary); background: var(--sidebar-bg); }
   .input-area button.send {
     padding: 12px 24px; border: none; border-radius: 24px;
     background: var(--bubble-me); color: #fff; font-size: 14px; font-weight: 600;
-    cursor: pointer; transition: all 0.2s;
-    box-shadow: 0 4px 12px rgba(99,102,241,0.3);
+    cursor: pointer;
   }
-  .input-area button.send:hover { transform: translateY(-1px); }
 
-  /* 表情面板 */
   .emoji-panel {
     position: absolute; bottom: 70px; left: 24px;
     background: var(--sidebar-bg); border-radius: 12px;
@@ -239,11 +221,10 @@
   .emoji-panel.show { display: grid; }
   .emoji-panel span {
     font-size: 20px; cursor: pointer; padding: 4px;
-    border-radius: 6px; text-align: center; transition: all 0.15s;
+    border-radius: 6px; text-align: center;
   }
-  .emoji-panel span:hover { background: var(--bg); transform: scale(1.2); }
+  .emoji-panel span:hover { background: var(--bg); }
 
-  /* 图片预览 */
   .image-preview {
     position: absolute; bottom: 70px; left: 24px;
     background: var(--sidebar-bg); border-radius: 12px;
@@ -258,13 +239,10 @@
     color: #fff; font-size: 12px; cursor: pointer;
   }
 
-  /* 滚动条 */
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
 
-  /* 响应式 */
   @media (max-width: 640px) {
     body { padding: 0; }
     .chat { max-width: 100%; height: 100vh; border-radius: 0; }
@@ -284,7 +262,6 @@
 </head>
 <body>
 
-<!-- 登录页 -->
 <div class="login-box" id="loginBox">
   <div class="logo">💬</div>
   <h2>聊天室</h2>
@@ -296,7 +273,6 @@
   <button id="btnRegister" class="secondary">注册新账号</button>
 </div>
 
-<!-- 聊天页 -->
 <div class="chat" id="chatBox">
   <div class="chat-inner">
     <div class="sidebar">
@@ -308,7 +284,7 @@
       </div>
       <div class="section">频道</div>
       <div class="list" id="publicList">
-        <div class="item active" data-room="public">
+        <div class="item active">
           <span style="margin-right:8px">💬</span>
           <span class="name">公共聊天室</span>
         </div>
@@ -317,16 +293,14 @@
       <div class="list" id="userList"></div>
     </div>
 
-    <div class="main" style="position:relative">
+    <div class="main">
       <div class="header">
         <h2 id="chatTitle">💬 公共聊天室</h2>
         <span class="count" id="count">0 人在线</span>
       </div>
       <div class="messages" id="messages"></div>
 
-      <!-- 表情面板 -->
       <div class="emoji-panel" id="emojiPanel"></div>
-      <!-- 图片预览 -->
       <div class="image-preview" id="imagePreview"></div>
 
       <div class="input-area">
@@ -347,15 +321,14 @@ let socket = null;
 let myNick = '';
 let currentRoom = 'public';
 let pendingImage = null;
-let msgMap = {}; // id -> DOM
+let msgMap = {};
+let unreadMap = {};
 
-/* ========== 主题 ========== */
 if (localStorage.getItem('chat_theme') === 'dark') {
   document.body.classList.add('dark');
   $('btnTheme').textContent = '☀️';
 }
 
-/* ========== 登录/注册 ========== */
 async function post(url, data) {
   const res = await fetch(url, {
     method: 'POST',
@@ -402,7 +375,6 @@ $('password').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') doLogin();
 });
 
-/* ========== 主题切换 ========== */
 $('btnTheme').onclick = () => {
   document.body.classList.toggle('dark');
   const isDark = document.body.classList.contains('dark');
@@ -410,7 +382,6 @@ $('btnTheme').onclick = () => {
   $('btnTheme').textContent = isDark ? '☀️' : '🌙';
 };
 
-/* ========== 退出 ========== */
 $('logout').onclick = () => {
   if (!confirm('确定退出？')) return;
   localStorage.removeItem('chat_token');
@@ -419,7 +390,6 @@ $('logout').onclick = () => {
   location.reload();
 };
 
-/* ========== Socket ========== */
 function connectSocket(token) {
   socket = io({ auth: { token } });
 
@@ -441,7 +411,7 @@ function connectSocket(token) {
     if (currentRoom === 'public') {
       renderMsg({ ...data, room: 'public' });
     }
-    notify(data.nickname, data.text || '[图片]');
+    if (data.nickname !== myNick) notify(data.nickname, data.text || '[图片]');
   });
 
   socket.on('private', (data) => {
@@ -450,6 +420,7 @@ function connectSocket(token) {
         id: data.id,
         nickname: data.from,
         text: data.text,
+        translated: data.translated,
         image: data.image,
         time: data.time,
         room: 'private',
@@ -504,8 +475,6 @@ function connectSocket(token) {
   });
 }
 
-/* ========== 未读徽标 ========== */
-let unreadMap = {};
 function renderUnread(list) {
   unreadMap = {};
   list.forEach(u => unreadMap[u.nickname] = u.cnt);
@@ -522,7 +491,6 @@ function renderUnread(list) {
   });
 }
 
-/* ========== 渲染用户列表 ========== */
 function renderUserList(onlineList) {
   const box = $('userList');
   box.innerHTML = '';
@@ -566,7 +534,7 @@ function switchToPublic() {
 
 document.querySelector('#publicList .item').onclick = switchToPublic;
 
-/* ========== 渲染消息 ========== */
+/* ========== 渲染消息（带翻译） ========== */
 function renderMsg(data, scroll = true) {
   const isMe = data.me !== undefined ? data.me : (data.nickname === myNick);
   const div = document.createElement('div');
@@ -584,6 +552,10 @@ function renderMsg(data, scroll = true) {
       content = `<img src="${data.image}" onclick="window.open(this.src)">`;
     } else {
       content = escapeHtml(data.text);
+      // 有翻译且和原文不一样，就显示翻译
+      if (data.translated && data.translated !== data.text) {
+        content += `<div class="translated">${escapeHtml(data.translated)}</div>`;
+      }
     }
 
     let revokeBtn = '';
@@ -597,12 +569,10 @@ function renderMsg(data, scroll = true) {
         ${revokeBtn}
       </div>
       <div class="bubble">${content}</div>
-      ${isMe && data.room === 'private' ? '<div class="read-status">已读</div>' : ''}
     `;
 
     if (data.id) msgMap[data.id] = div;
 
-    // 撤回按钮绑定
     const btn = div.querySelector('.revoke-btn');
     if (btn) {
       btn.onclick = () => {
@@ -625,13 +595,10 @@ function escapeHtml(s) {
   }[c]));
 }
 
-/* ========== 通知 ========== */
 function notify(from, text) {
-  // 桌面通知
   if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification(from, { body: text, icon: '/favicon.ico' });
+    new Notification(from, { body: text });
   }
-  // 标题闪烁
   if (document.hidden) {
     let count = 0;
     const timer = setInterval(() => {
@@ -640,7 +607,6 @@ function notify(from, text) {
       if (count > 6) { clearInterval(timer); document.title = '聊天室'; }
     }, 500);
   }
-  // 提示音
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = ctx.createOscillator();
@@ -655,12 +621,10 @@ function notify(from, text) {
   } catch {}
 }
 
-// 请求通知权限
 if ('Notification' in window && Notification.permission === 'default') {
   setTimeout(() => Notification.requestPermission(), 3000);
 }
 
-/* ========== 表情面板 ========== */
 const EMOJIS = ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😎','😍','😘','🥰','😗','😙','😚','🙂','🤗','🤩','🤔','🤨','😐','😑','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','🥱','😴','😌','😛','😜','😝','🤤','😒','😓','😔','😕','🙃','🤑','😲','☹️','🙁','😖','😞','😟','😤','😢','😭','😦','😧','😨','😩','🤯','😬','😰','😱','🥵','🥶','😳','🤪','😵','🥴','😠','😡','🤬','👍','👎','👌','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','👇','☝️','✋','🤚','🖐','🖖','👋','🤝','🙏','❤️','🧡','💛','💚','💙','💜','🖤','🤍','💔','❣️','💕','💞','💓','💗','💖','💘','💝','🔥','⭐','🌟','✨','💫','⚡','💥','💢','💦','💨'];
 
 function buildEmojiPanel() {
@@ -687,7 +651,6 @@ document.addEventListener('click', (e) => {
   }
 });
 
-/* ========== 图片上传 ========== */
 $('btnImage').onclick = () => $('fileInput').click();
 
 $('fileInput').onchange = (e) => {
@@ -713,7 +676,6 @@ function showImagePreview(src) {
   $('emojiPanel').classList.remove('show');
 }
 
-/* ========== 发送 ========== */
 async function send() {
   const text = $('input').value.trim();
   if (!text && !pendingImage) return;
@@ -739,7 +701,6 @@ $('input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') send();
 });
 
-/* ========== 启动 ========== */
 const savedToken = localStorage.getItem('chat_token');
 const savedName = localStorage.getItem('chat_username');
 if (savedToken && savedName) {
