@@ -51,7 +51,6 @@
     color: var(--text);
   }
 
-  /* ========== 登录页 ========== */
   .login-box {
     background: var(--sidebar-bg);
     padding: 48px 40px;
@@ -81,7 +80,6 @@
   }
   .login-box .msg { color: #ef4444; font-size: 13px; text-align: center; min-height: 18px; margin-bottom: 8px; }
 
-  /* ========== 主界面 ========== */
   .chat {
     width: 100%; max-width: 1200px; height: 100vh;
     background: var(--sidebar-bg); display: none; overflow: hidden;
@@ -91,7 +89,6 @@
   }
   .chat-inner { display: flex; height: 100%; }
 
-  /* ========== 左侧栏 ========== */
   .sidebar {
     width: 340px; background: var(--sidebar-bg);
     border-right: 1px solid var(--border);
@@ -172,7 +169,6 @@
   .sidebar .item.active .badge { background: #fff; color: var(--primary); }
   .sidebar .item .type-icon { font-size: 12px; color: var(--text-lighter); }
 
-  /* ========== 右侧聊天区 ========== */
   .main {
     flex: 1; display: flex; flex-direction: column;
     min-width: 0; background: var(--chat-bg); position: relative;
@@ -196,19 +192,10 @@
     font-size: 12px; color: var(--text-light); margin-top: 2px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .main .header .icon-btn {
-    width: 40px; height: 40px; border: none; border-radius: 50%;
-    background: transparent; color: var(--text-light); font-size: 18px;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-  }
-  .main .header .icon-btn:hover { background: var(--primary-light); color: var(--primary); }
 
   .messages {
     flex: 1; overflow-y: auto; padding: 20px 6%;
     display: flex; flex-direction: column; gap: 4px;
-    background-image:
-      radial-gradient(circle at 20% 30%, rgba(0,136,204,0.04) 0%, transparent 50%),
-      radial-gradient(circle at 80% 70%, rgba(139,92,246,0.04) 0%, transparent 50%);
   }
   .empty-tip {
     flex: 1; display: flex; flex-direction: column;
@@ -216,12 +203,6 @@
     color: var(--text-light); font-size: 14px; gap: 12px;
   }
   .empty-tip .icon { font-size: 64px; opacity: 0.3; }
-
-  .date-divider {
-    align-self: center; background: var(--sidebar-bg); color: var(--text-light);
-    font-size: 11px; font-weight: 500; padding: 4px 12px;
-    border-radius: 8px; box-shadow: var(--shadow-sm); margin: 8px 0;
-  }
 
   .msg {
     display: flex; flex-direction: column; max-width: 70%;
@@ -244,7 +225,6 @@
   }
   .msg .bubble .revoked { color: var(--text-lighter); font-style: italic; font-size: 13px; }
 
-  /* 时间 + 状态 */
   .msg .meta {
     font-size: 11px; color: var(--text-lighter); margin-top: 2px;
     padding: 0 4px; display: flex; align-items: center; gap: 4px;
@@ -318,7 +298,6 @@
     border-radius: 8px; background: #ef4444; color: #fff; font-size: 13px; cursor: pointer;
   }
 
-  /* ========== 弹窗 ========== */
   .modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.5);
     display: none; align-items: center; justify-content: center; z-index: 100;
@@ -365,9 +344,7 @@
   }
   .modal .modal-footer button.primary { background: var(--primary); color: #fff; }
   .modal .modal-footer button.primary:hover { background: var(--primary-dark); }
-  .modal .modal-footer button.secondary {
-    background: var(--bg); color: var(--text);
-  }
+  .modal .modal-footer button.secondary { background: var(--bg); color: var(--text); }
 
   .avatar-upload {
     display: flex; flex-direction: column; align-items: center; margin-bottom: 16px;
@@ -423,7 +400,6 @@
 </head>
 <body>
 
-<!-- 登录页 -->
 <div class="login-box" id="loginBox">
   <div class="logo">💬</div>
   <h2>聊天</h2>
@@ -439,10 +415,8 @@
   <button id="btnRegister" class="secondary">注册新账号</button>
 </div>
 
-<!-- 主界面 -->
 <div class="chat" id="chatBox">
   <div class="chat-inner">
-    <!-- 左侧栏 -->
     <div class="sidebar">
       <div class="me">
         <div class="avatar-circle" id="myAvatar" onclick="openProfileModal()">-</div>
@@ -480,7 +454,6 @@
       </div>
     </div>
 
-    <!-- 右侧聊天区 -->
     <div class="main">
       <div class="header" id="chatHeader" style="display:none">
         <button class="back-btn" id="backBtn">←</button>
@@ -551,7 +524,7 @@
   </div>
 </div>
 
-<!-- 创建群组/频道弹窗 -->
+<!-- 创建群组弹窗 -->
 <div class="modal-overlay" id="createGroupModal">
   <div class="modal">
     <div class="modal-header">
@@ -608,7 +581,6 @@ let myToken = '';
 let currentChat = null;
 let chats = [];
 let friends = [];
-let allUsers = [];
 let msgMap = {};
 let unreadMap = {};
 let pendingImage = null;
@@ -629,14 +601,13 @@ async function api(url, options = {}) {
   return res.json();
 }
 
-/* ========== 登录 ========== */
 async function doLogin() {
   const username = $('username').value.trim();
   const password = $('password').value;
   if (!username || !password) { showMsg('请填写用户名和密码'); return; }
   const r = await api('/api/login', { method: 'POST', body: JSON.stringify({ username, password }) });
   if (!r.ok) { showMsg(r.msg); return; }
-  onLogin(r.token, r.username, r.lang);
+  onLogin(r.token, r.username);
 }
 
 async function doRegister() {
@@ -646,12 +617,12 @@ async function doRegister() {
   if (!username || !password) { showMsg('请填写用户名和密码'); return; }
   const r = await api('/api/register', { method: 'POST', body: JSON.stringify({ username, password, lang }) });
   if (!r.ok) { showMsg(r.msg); return; }
-  onLogin(r.token, r.username, r.lang);
+  onLogin(r.token, r.username);
 }
 
 function showMsg(t) { $('loginMsg').textContent = t; }
 
-async function onLogin(token, username, lang) {
+async function onLogin(token, username) {
   localStorage.setItem('chat_token', token);
   localStorage.setItem('chat_username', username);
   myToken = token;
@@ -663,18 +634,14 @@ async function onLogin(token, username, lang) {
   $('loginBox').style.display = 'none';
   $('chatBox').style.display = 'block';
   updateMyAvatar();
-
   connectSocket(token);
   loadFriends();
 }
 
 function updateMyAvatar() {
   const av = $('myAvatar');
-  if (myUser.avatar) {
-    av.innerHTML = `<img src="${myUser.avatar}">`;
-  } else {
-    av.textContent = (myUser.nickname || myUser.username).charAt(0).toUpperCase();
-  }
+  if (myUser.avatar) av.innerHTML = `<img src="${myUser.avatar}">`;
+  else av.textContent = (myUser.nickname || myUser.username).charAt(0).toUpperCase();
   $('myName').textContent = myUser.nickname || myUser.username;
 }
 
@@ -696,7 +663,6 @@ $('logout').onclick = () => {
   location.reload();
 };
 
-/* ========== Socket ========== */
 function connectSocket(token) {
   socket = io({ auth: { token } });
 
@@ -715,10 +681,8 @@ function connectSocket(token) {
     const isCurrent = currentChat && currentChat.id === data.chatId;
     if (isCurrent) {
       renderMsg(data);
-      // 标记已读
       if (!data.self) socket.emit('mark_read', { chatId: data.chatId });
     } else {
-      // 未读
       unreadMap[data.chatId] = (unreadMap[data.chatId] || 0) + 1;
       renderChatList();
       if (!data.self) notify(data.nickname, data.text || '[图片]');
@@ -727,7 +691,7 @@ function connectSocket(token) {
 
   socket.on('read', ({ chatId, userId }) => {
     if (userId === myUser.id) return;
-    document.querySelectorAll(`.msg.me .check`).forEach(el => {
+    document.querySelectorAll('.msg.me .check').forEach(el => {
       el.classList.add('read');
       el.classList.remove('delivered', 'sent');
     });
@@ -735,9 +699,7 @@ function connectSocket(token) {
 
   socket.on('revoked', ({ id }) => {
     const el = msgMap[id];
-    if (el) {
-      el.querySelector('.bubble').innerHTML = '<span class="revoked">消息已撤回</span>';
-    }
+    if (el) el.querySelector('.bubble').innerHTML = '<span class="revoked">消息已撤回</span>';
   });
 
   socket.on('profile_updated', ({ userId, nickname, avatar }) => {
@@ -746,7 +708,6 @@ function connectSocket(token) {
       myUser.avatar = avatar;
       updateMyAvatar();
     }
-    // 更新聊天列表里的头像/昵称
     chats.forEach(c => {
       c.members.forEach(m => {
         if (m.id === userId) { m.nickname = nickname; m.avatar = avatar; }
@@ -755,17 +716,8 @@ function connectSocket(token) {
     renderChatList();
     if (currentChat) updateChatHeader();
   });
-
-  socket.on('online', ({ userId, online }) => {
-    // 更新在线状态
-    document.querySelectorAll(`[data-user-id="${userId}"]`).forEach(el => {
-      const dot = el.querySelector('.online-dot');
-      if (dot) dot.style.background = online ? '#00a884' : '#8696a0';
-    });
-  });
 }
 
-/* ========== 聊天列表 ========== */
 function renderChatList() {
   const box = $('chatList');
   box.innerHTML = '';
@@ -775,20 +727,14 @@ function renderChatList() {
   }
   chats.forEach(c => {
     const other = c.type === 'private' ? c.members.find(m => m.id !== myUser.id) : null;
-    const displayName = c.type === 'private'
-      ? (other ? (other.nickname || other.username) : '私聊')
-      : c.name;
-    const displayAvatar = c.type === 'private'
-      ? (other ? other.avatar : null)
-      : c.avatar;
+    const displayName = c.type === 'private' ? (other ? (other.nickname || other.username) : '私聊') : c.name;
+    const displayAvatar = c.type === 'private' ? (other ? other.avatar : null) : c.avatar;
     const initial = (displayName || '?').charAt(0).toUpperCase();
 
     const div = document.createElement('div');
     div.className = 'item' + (currentChat && currentChat.id === c.id ? ' active' : '');
     div.innerHTML = `
-      <div class="avatar-circle">
-        ${displayAvatar ? `<img src="${displayAvatar}">` : initial}
-      </div>
+      <div class="avatar-circle">${displayAvatar ? `<img src="${displayAvatar}">` : initial}</div>
       <div class="item-info">
         <div class="item-name">
           ${escapeHtml(displayName)}
@@ -816,13 +762,12 @@ function openChat(chat) {
   socket.emit('join_chat', chat.id);
   socket.emit('mark_read', { chatId: chat.id });
 
-  // 加载消息
   $('messages').innerHTML = '<div class="empty-tip">加载中...</div>';
   api('/api/messages/' + chat.id).then(r => {
     $('messages').innerHTML = '';
     msgMap = {};
     if (r.ok && r.messages) {
-      r.messages.reverse().forEach(m => {
+      r.messages.forEach(m => {
         renderMsg({
           id: m.id,
           chatId: chat.id,
@@ -861,7 +806,6 @@ function updateChatHeader() {
   $('headerAvatar').innerHTML = avatar ? `<img src="${avatar}">` : initial;
 }
 
-/* ========== 渲染消息 ========== */
 function renderMsg(data, scroll = true) {
   const isMe = data.self;
   const div = document.createElement('div');
@@ -869,15 +813,11 @@ function renderMsg(data, scroll = true) {
     div.className = 'msg system';
     div.innerHTML = `<div class="bubble">${escapeHtml(data.text)}</div>`;
   } else {
-    let cls = 'msg' + (isMe ? ' me' : '');
-    div.className = cls;
+    div.className = 'msg' + (isMe ? ' me' : '');
 
-    let content = '';
-    if (data.image) {
-      content = `<img src="${data.image}" onclick="window.open(this.src)">`;
-    } else {
-      content = escapeHtml(data.text);
-    }
+    let content = data.image
+      ? `<img src="${data.image}" onclick="window.open(this.src)">`
+      : escapeHtml(data.text);
 
     let senderName = '';
     if (!isMe && currentChat && currentChat.type !== 'private') {
@@ -899,9 +839,7 @@ function renderMsg(data, scroll = true) {
 
     div.innerHTML = `
       <div class="bubble">${senderName}${content}</div>
-      <div class="meta">
-        ${data.time} ${check} ${revokeBtn}
-      </div>
+      <div class="meta">${data.time} ${check} ${revokeBtn}</div>
     `;
 
     if (data.id) msgMap[data.id] = div;
@@ -924,7 +862,6 @@ function escapeHtml(s) {
   }[c]));
 }
 
-/* ========== 发送 ========== */
 async function send() {
   const text = $('input').value.trim();
   if (!text && !pendingImage) return;
@@ -938,17 +875,12 @@ async function send() {
     $('imagePreview').classList.remove('show');
   }
 
-  socket.emit('send_message', {
-    chatId: currentChat.id,
-    text,
-    image: imageUrl,
-  });
+  socket.emit('send_message', { chatId: currentChat.id, text, image: imageUrl });
   $('input').value = '';
 }
 $('send').onclick = send;
 $('input').addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
 
-/* ========== 好友 ========== */
 async function loadFriends() {
   const r = await api('/api/friends');
   if (r.ok) {
@@ -967,12 +899,9 @@ function renderFriendList() {
   friends.forEach(f => {
     const div = document.createElement('div');
     div.className = 'item';
-    div.dataset.userId = f.id;
     const initial = (f.nickname || f.username).charAt(0).toUpperCase();
     div.innerHTML = `
-      <div class="avatar-circle">
-        ${f.avatar ? `<img src="${f.avatar}">` : initial}
-      </div>
+      <div class="avatar-circle">${f.avatar ? `<img src="${f.avatar}">` : initial}</div>
       <div class="item-info">
         <div class="item-name">${escapeHtml(f.nickname || f.username)}</div>
         <div class="item-status">@${escapeHtml(f.username)}</div>
@@ -987,7 +916,6 @@ async function startPrivateChat(userId) {
   const r = await api('/api/chats/private', { method: 'POST', body: JSON.stringify({ userId }) });
   if (!r.ok) { alert(r.msg || '创建失败'); return; }
 
-  // 重新加载会话
   const chatsRes = await api('/api/chats');
   if (chatsRes.ok) {
     chats = chatsRes.chats;
@@ -1021,9 +949,7 @@ async function searchUsersForFriend() {
     div.className = 'user-item';
     const initial = (u.nickname || u.username).charAt(0).toUpperCase();
     div.innerHTML = `
-      <div class="avatar-circle">
-        ${u.avatar ? `<img src="${u.avatar}">` : initial}
-      </div>
+      <div class="avatar-circle">${u.avatar ? `<img src="${u.avatar}">` : initial}</div>
       <div class="user-info">
         <div class="user-name">${escapeHtml(u.nickname || u.username)}</div>
         <div class="user-sub">@${escapeHtml(u.username)}</div>
@@ -1049,25 +975,20 @@ async function searchUsersForFriend() {
   });
 }
 
-/* ========== 群组/频道 ========== */
 function openCreateGroupModal() {
   $('groupName').value = '';
   $('groupAvatar').innerHTML = '👥';
   pendingGroupAvatar = null;
   selectedMembers.clear();
   selectedGroupType = 'group';
-  document.querySelectorAll('.type-option').forEach(el => {
-    el.classList.toggle('active', el.dataset.type === 'group');
-  });
+  document.querySelectorAll('.type-option').forEach(el => el.classList.toggle('active', el.dataset.type === 'group'));
   renderGroupMemberList();
   $('createGroupModal').classList.add('show');
 }
 
 function selectGroupType(type) {
   selectedGroupType = type;
-  document.querySelectorAll('.type-option').forEach(el => {
-    el.classList.toggle('active', el.dataset.type === type);
-  });
+  document.querySelectorAll('.type-option').forEach(el => el.classList.toggle('active', el.dataset.type === type));
   $('groupAvatar').innerHTML = type === 'channel' ? '📢' : '👥';
 }
 
@@ -1083,9 +1004,7 @@ function renderGroupMemberList() {
     div.className = 'user-item' + (selectedMembers.has(f.id) ? ' selected' : '');
     const initial = (f.nickname || f.username).charAt(0).toUpperCase();
     div.innerHTML = `
-      <div class="avatar-circle">
-        ${f.avatar ? `<img src="${f.avatar}">` : initial}
-      </div>
+      <div class="avatar-circle">${f.avatar ? `<img src="${f.avatar}">` : initial}</div>
       <div class="user-info">
         <div class="user-name">${escapeHtml(f.nickname || f.username)}</div>
         <div class="user-sub">@${escapeHtml(f.username)}</div>
@@ -1114,9 +1033,7 @@ async function createGroup() {
   const r = await api('/api/chats/group', {
     method: 'POST',
     body: JSON.stringify({
-      name,
-      avatar: avatarUrl,
-      type: selectedGroupType,
+      name, avatar: avatarUrl, type: selectedGroupType,
       memberIds: Array.from(selectedMembers),
     }),
   });
@@ -1132,7 +1049,6 @@ async function createGroup() {
   }
 }
 
-/* ========== 个人资料 ========== */
 function openProfileModal() {
   $('profileNickname').value = myUser.nickname || myUser.username;
   const av = $('profileAvatar');
@@ -1163,10 +1079,7 @@ async function saveProfile() {
     if (r.ok) avatarUrl = r.url;
   }
 
-  const r = await api('/api/me', {
-    method: 'PUT',
-    body: JSON.stringify({ nickname, avatar: avatarUrl }),
-  });
+  const r = await api('/api/me', { method: 'PUT', body: JSON.stringify({ nickname, avatar: avatarUrl }) });
   if (!r.ok) { alert('保存失败'); return; }
 
   myUser.nickname = nickname;
@@ -1176,7 +1089,6 @@ async function saveProfile() {
   closeModal('profileModal');
 }
 
-/* ========== 聊天信息 ========== */
 function openChatInfoModal() {
   if (!currentChat) return;
   const body = $('chatInfoBody');
@@ -1224,9 +1136,9 @@ function openChatInfoModal() {
 
   if (currentChat.type !== 'private') {
     setTimeout(() => {
-      const fileInput = $('chatInfoAvatarFile');
-      if (fileInput) {
-        fileInput.onchange = (e) => {
+      const fi = $('chatInfoAvatarFile');
+      if (fi) {
+        fi.onchange = (e) => {
           const file = e.target.files[0];
           if (!file) return;
           const reader = new FileReader();
@@ -1252,10 +1164,7 @@ async function saveChatInfo() {
     pendingGroupAvatar = null;
   }
 
-  await api('/api/chats/' + currentChat.id, {
-    method: 'PUT',
-    body: JSON.stringify({ name, avatar: avatarUrl }),
-  });
+  await api('/api/chats/' + currentChat.id, { method: 'PUT', body: JSON.stringify({ name, avatar: avatarUrl }) });
 
   currentChat.name = name;
   currentChat.avatar = avatarUrl;
@@ -1271,18 +1180,12 @@ async function removeFriend(id) {
   closeModal('chatInfoModal');
 }
 
-/* ========== 弹窗通用 ========== */
-function closeModal(id) {
-  $(id).classList.remove('show');
-}
+function closeModal(id) { $(id).classList.remove('show'); }
 
 document.querySelectorAll('.modal-overlay').forEach(el => {
-  el.addEventListener('click', (e) => {
-    if (e.target === el) el.classList.remove('show');
-  });
+  el.addEventListener('click', (e) => { if (e.target === el) el.classList.remove('show'); });
 });
 
-/* ========== 头像上传 ========== */
 $('groupAvatarFile').onchange = (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -1294,7 +1197,6 @@ $('groupAvatarFile').onchange = (e) => {
   reader.readAsDataURL(file);
 };
 
-/* ========== 标签切换 ========== */
 document.querySelectorAll('.tab').forEach(tab => {
   tab.onclick = () => {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -1305,27 +1207,16 @@ document.querySelectorAll('.tab').forEach(tab => {
   };
 });
 
-/* ========== 搜索 ========== */
-$('searchInput').addEventListener('input', () => {
-  renderChatList();
-});
+$('searchInput').addEventListener('input', () => renderChatList());
+$('backBtn').onclick = () => $('chatBox').classList.remove('mobile-chat');
 
-/* ========== 返回 ========== */
-$('backBtn').onclick = () => {
-  $('chatBox').classList.remove('mobile-chat');
-};
-
-/* ========== 表情 ========== */
 const EMOJIS = ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😎','😍','😘','🥰','😗','😙','😚','🙂','🤗','🤩','🤔','🤨','😐','😑','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','🥱','😴','😌','😛','😜','😝','🤤','😒','😓','😔','😕','🙃','🤑','😲','☹️','🙁','😖','😞','😟','😤','😢','😭','😦','😧','😨','😩','🤯','😬','😰','😱','🥵','🥶','😳','🤪','😵','🥴','😠','😡','🤬','👍','👎','👌','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','👇','☝️','✋','🤚','🖐','🖖','👋','🤝','🙏','❤️','🧡','💛','💚','💙','💜','🖤','🤍','💔','❣️','💕','💞','💓','💗','💖','💘','💝','🔥','⭐','🌟','✨','💫','⚡','💥','💢','💦','💨'];
 
 function buildEmojiPanel() {
   const panel = $('emojiPanel');
   panel.innerHTML = EMOJIS.map(e => `<span>${e}</span>`).join('');
   panel.querySelectorAll('span').forEach(s => {
-    s.onclick = () => {
-      $('input').value += s.textContent;
-      $('input').focus();
-    };
+    s.onclick = () => { $('input').value += s.textContent; $('input').focus(); };
   });
 }
 buildEmojiPanel();
@@ -1342,7 +1233,6 @@ document.addEventListener('click', (e) => {
   }
 });
 
-/* ========== 图片 ========== */
 $('btnImage').onclick = () => $('fileInput').click();
 
 $('fileInput').onchange = (e) => {
@@ -1368,7 +1258,6 @@ function showImagePreview(src) {
   $('emojiPanel').classList.remove('show');
 }
 
-/* ========== 通知 ========== */
 function notify(from, text) {
   if ('Notification' in window && Notification.permission === 'granted') {
     new Notification(from, { body: text });
@@ -1391,12 +1280,11 @@ if ('Notification' in window && Notification.permission === 'default') {
   setTimeout(() => Notification.requestPermission(), 3000);
 }
 
-/* ========== 启动 ========== */
 const savedToken = localStorage.getItem('chat_token');
 const savedName = localStorage.getItem('chat_username');
 if (savedToken && savedName) {
   myToken = savedToken;
-  onLogin(savedToken, savedName, 'zh');
+  onLogin(savedToken, savedName);
 }
 </script>
 </body>
