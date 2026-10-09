@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>聊天室</title>
+<style>
+  /* ========== 全局 ========== */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --primary-light: #e0e7ff;
+    --bg: #f8fafc;
+    --sidebar-bg: #ffffff;
+    --chat-bg: #f1f5f9;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --text-light: #64748b;
+    --text-lighter: #94a3b8;
+    --bubble-me: linear-gradient(135deg, #6366f1, #8b5cf6);
+    --bubble-other: #ffffff;
+    --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 16px;
+    overflow: hidden;
+  }
+
+  /* ========== 登录页 ========== */
+  .login-box {
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px);
+    padding: 40px 36px;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    animation: fadeUp 0.4s ease;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .login-box .logo {
+    text-align: center;
+    font-size: 40px;
+    margin-bottom: 8px;
+  }
+  .login-box h2 {
+    text-align: center;
+    color: var(--text);
+    margin-bottom: 8px;
+    font-size: 22px;
+    font-weight: 600;
+  }
+  .login-box .subtitle {
+    text-align: center;
+    color: var(--text-light);
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+  .login-box input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    font-size: 14px;
+    margin-bottom: 12px;
+    outline: none;
+    transition: all 0.2s;
+    background: #fff;
+  }
+  .login-box input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  }
+  .login-box button {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: var(--bubble-me);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 6px;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  }
+  .login-box button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+  }
+  .login-box button:active { transform: translateY(0); }
+  .login-box button.secondary {
+    background: #fff;
+    color: var(--primary);
+    border: 2px solid var(--primary-light);
+    box-shadow: none;
+  }
+  .login-box button.secondary:hover {
+    background: var(--primary-light);
+    box-shadow: none;
+  }
+  .login-box .msg {
+    color: #ef4444;
+    font-size: 13px;
+    text-align: center;
+    min-height: 18px;
+    margin-bottom: 8px;
+  }
+
+  /* ========== 聊天页 ========== */
+  .chat {
+    width: 100%;
+    max-width: 900px;
+    height: 90vh;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    display: none;
+    overflow: hidden;
+    animation: fadeUp 0.4s ease;
+  }
+  .chat-inner { display: flex; height: 100%; }
+
+  /* ========== 左侧栏 ========== */
+  .sidebar {
+    width: 220px;
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .sidebar .me {
+    padding: 18px;
+    background: var(--bubble-me);
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .sidebar .me .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    margin-right: 10px;
+  }
+  .sidebar .me .info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
+  .sidebar .me .name {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .sidebar .me button {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .sidebar .me button:hover { background: rgba(255, 255, 255, 0.35); }
+
+  .sidebar .section {
+    padding: 12px 18px 6px;
+    font-size: 11px;
+    color: var(--text-lighter);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .sidebar .list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 8px 8px;
+  }
+  .sidebar .item {
+    padding: 10px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .sidebar .item:hover { background: var(--bg); }
+  .sidebar .item.active {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+  .sidebar .item .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    margin-right: 10px;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+    flex-shrink: 0;
+  }
+  .sidebar .item .name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ========== 右侧聊天区 ========== */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .main .header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+  }
+  .main .header h2 {
+    font-size: 16px;
+    color: var(--text);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .main .header .count {
+    font-size: 12px;
+    color: var(--text-light);
+    background: var(--bg);
+    padding: 4px 10px;
+    border-radius: 12px;
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    background: var(--chat-bg);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* 消息气泡 */
+  .msg {
+    display: flex;
+    flex-direction: column;
+    animation: msgIn 0.25s ease;
+  }
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .msg .meta {
+    font-size: 11px;
+    color: var(--text-lighter);
+    margin-bottom: 4px;
+    padding: 0 4px;
+  }
+  .msg .bubble {
+    display: inline-block;
+    padding: 10px 14px;
+    border-radius: 16px;
+    background: var(--bubble-other);
+    font-size: 14px;
+    line-height: 1.5;
+    max-width: 70%;
+    word-break: break-word;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    color: var(--text);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+  .msg.me {
+    align-items: flex-end;
+  }
+  .msg.me .bubble {
+    background: var(--bubble-me);
+    color: #fff;
+    align-self: flex-end;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+  }
+  .msg.me .meta {
+    text-align: right;
+  }
+  .msg.private .bubble {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fde68a;
+  }
+  .msg.me.private .bubble {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #fff;
+    border: none;
+  }
+  .msg.system {
+    align-items: center;
+    margin: 4px 0;
+  }
+  .msg.system .bubble {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--text-light);
+    font-size: 12px;
+    box-shadow: none;
+    padding: 4px 12px;
+    border-radius: 12px;
+    align-self: center;
+  }
+
+  /* ========== 输入区 ========== */
+  .input-area {
+    display: flex;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    background: #fff;
+    gap: 10px;
+    align-items: center;
+  }
+  .input-area input {
+    flex: 1;
+    padding: 12px 18px;
+    border: 2px solid var(--border);
+    border-radius: 24px;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s;
+    background: var(--bg);
+  }
+  .input-area input:focus {
+    border-color: var(--primary);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  }
+  .input-area button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 24px;
+    background: var(--bubble-me);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  }
+  .input-area button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+  }
+  .input-area button:active { transform: translateY(0); }
+
+  /* ========== 滚动条 ========== */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.12);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.2); }
+
+  /* ========== 响应式 ========== */
+  @media (max-width: 640px) {
+    body { padding: 0; }
+    .chat { max-width: 100%; height: 100vh; border-radius: 0; }
+    .sidebar { width: 70px; }
+    .sidebar .me .info { display: none; }
+    .sidebar .me { justify-content: center; padding: 14px 0; }
+    .sidebar .me .avatar { margin-right: 0; }
+    .sidebar .me button { display: none; }
+    .sidebar .section { display: none; }
+    .sidebar .item { justify-content: center; padding: 12px 0; }
+    .sidebar .item .name { display: none; }
+    .sidebar .item .dot { margin-right: 0; }
+    .messages { padding: 14px; }
+    .msg .bubble { max-width: 85%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 登录页 -->
+<div class="login-box" id="loginBox">
+  <div class="logo">💬</div>
+  <h2>聊天室</h2>
+  <div class="subtitle">注册或登录开始聊天</div>
+  <div class="msg" id="loginMsg"></div>
+  <input id="username" placeholder="用户名" maxlength="12">
+  <input id="password" type="password" placeholder="密码">
+  <button id="btnLogin">登录</button>
+  <button id="btnRegister" class="secondary">注册新账号</button>
+</div>
+
+<!-- 聊天页 -->
+<div class="chat" id="chatBox">
+  <div class="chat-inner">
+    <div class="sidebar">
+      <div class="me">
+        <div class="info">
+          <div class="avatar" id="myAvatar">-</div>
+          <div class="name" id="myName">-</div>
+        </div>
+        <button id="logout">退出</button>
+      </div>
+      <div class="section">频道</div>
+      <div class="list" id="publicList">
+        <div class="item active" data-room="public">
+          <span style="margin-right:8px">💬</span>
+          <span class="name">公共聊天室</span>
+        </div>
+      </div>
+      <div class="section">在线用户</div>
+      <div class="list" id="userList"></div>
+    </div>
+
+    <div class="main">
+      <div class="header">
+        <h2 id="chatTitle">💬 公共聊天室</h2>
+        <span class="count" id="count">0 人在线</span>
+      </div>
+      <div class="messages" id="messages"></div>
+      <div class="input-area">
+        <input id="input" placeholder="输入消息..." autocomplete="off">
+        <button id="send">发送</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+let socket = null;
+let myNick = '';
+let currentRoom = 'public';
+
+/* ========== 登录/注册 ========== */
+async function post(url, data) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+async function doLogin() {
+  const username = $('username').value.trim();
+  const password = $('password').value;
+  if (!username || !password) { showMsg('请填写用户名和密码'); return; }
+  const r = await post('/api/login', { username, password });
+  if (!r.ok) { showMsg(r.msg); return; }
+  onLoginSuccess(r.token, r.username);
+}
+
+async function doRegister() {
+  const username = $('username').value.trim();
+  const password = $('password').value;
+  if (!username || !password) { showMsg('请填写用户名和密码'); return; }
+  const r = await post('/api/register', { username, password });
+  if (!r.ok) { showMsg(r.msg); return; }
+  onLoginSuccess(r.token, r.username);
+}
+
+function showMsg(text) { $('loginMsg').textContent = text; }
+
+function onLoginSuccess(token, username) {
+  localStorage.setItem('chat_token', token);
+  localStorage.setItem('chat_username', username);
+  myNick = username;
+  $('loginBox').style.display = 'none';
+  $('chatBox').style.display = 'block';
+  $('myName').textContent = username;
+  $('myAvatar').textContent = username.charAt(0).toUpperCase();
+  connectSocket(token);
+}
+
+$('btnLogin').onclick = doLogin;
+$('btnRegister').onclick = doRegister;
+$('password').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') doLogin();
+});
+
+$('logout').onclick = () => {
+  if (!confirm('确定退出？')) return;
+  localStorage.removeItem('chat_token');
+  localStorage.removeItem('chat_username');
+  if (socket) socket.disconnect();
+  location.reload();
+};
+
+/* ========== Socket ========== */
+function connectSocket(token) {
+  socket = io({ auth: { token } });
+
+  socket.on('connect_error', (err) => {
+    alert('连接失败：' + err.message);
+    localStorage.removeItem('chat_token');
+    location.reload();
+  });
+
+  socket.on('history', ({ room, list }) => {
+    if (room !== 'public') return;
+    $('messages').innerHTML = '';
+    list.forEach(m => renderMsg({ ...m, room: 'public' }, false));
+    $('messages').scrollTop = $('messages').scrollHeight;
+  });
+
+  socket.on('message', (data) => {
+    if (currentRoom === 'public') {
+      renderMsg({ ...data, room: 'public' });
+    }
+  });
+
+  socket.on('private', (data) => {
+    if (currentRoom === data.from || currentRoom === data.to) {
+      renderMsg({
+        nickname: data.from,
+        text: data.text,
+        time: data.time,
+        room: 'private',
+        me: data.self,
+      });
+    }
+  });
+
+  socket.on('private_error', ({ msg }) => alert(msg));
+
+  socket.on('private_history', ({ other, list }) => {
+    $('messages').innerHTML = '';
+    list.forEach(m => {
+      renderMsg({
+        nickname: m.nickname,
+        text: m.text,
+        time: m.time,
+        room: 'private',
+        me: m.nickname === myNick,
+      }, false);
+    });
+    $('messages').scrollTop = $('messages').scrollHeight;
+  });
+
+  socket.on('system', (text) => {
+    if (currentRoom === 'public') {
+      renderMsg({ type: 'system', text, room: 'public' });
+    }
+  });
+
+  socket.on('userlist', (list) => {
+    $('count').textContent = list.length + ' 人在线';
+    renderUserList(list);
+  });
+}
+
+/* ========== 渲染用户列表 ========== */
+function renderUserList(onlineList) {
+  const box = $('userList');
+  box.innerHTML = '';
+  onlineList.forEach(name => {
+    if (name === myNick) return;
+    const div = document.createElement('div');
+    div.className = 'item' + (currentRoom === name ? ' active' : '');
+    div.innerHTML = `<span class="dot"></span><span class="name">${escapeHtml(name)}</span>`;
+    div.onclick = () => switchToPrivate(name);
+    box.appendChild(div);
+  });
+}
+
+function switchToPrivate(name) {
+  currentRoom = name;
+  $('chatTitle').textContent = '🔒 私聊 · ' + name;
+  $('messages').innerHTML = '';
+  socket.emit('private_history', name);
+  document.querySelectorAll('#userList .item').forEach(el => {
+    el.classList.toggle('active', el.querySelector('.name').textContent === name);
+  });
+  document.querySelectorAll('#publicList .item').forEach(el => el.classList.remove('active'));
+}
+
+function switchToPublic() {
+  currentRoom = 'public';
+  $('chatTitle').textContent = '💬 公共聊天室';
+  $('messages').innerHTML = '';
+  socket.emit('join', myNick);
+  document.querySelectorAll('#userList .item').forEach(el => el.classList.remove('active'));
+  document.querySelector('#publicList .item').classList.add('active');
+}
+
+document.querySelector('#publicList .item').onclick = switchToPublic;
+
+/* ========== 渲染消息 ========== */
+function renderMsg(data, scroll = true) {
+  const isMe = data.me !== undefined ? data.me : (data.nickname === myNick);
+  const div = document.createElement('div');
+  if (data.type === 'system') {
+    div.className = 'msg system';
+    div.innerHTML = `<div class="bubble">${escapeHtml(data.text)}</div>`;
+  } else {
+    let cls = 'msg';
+    if (isMe) cls += ' me';
+    if (data.room === 'private') cls += ' private';
+    div.className = cls;
+    div.innerHTML = `
+      <div class="meta">${escapeHtml(data.nickname)} · ${data.time}</div>
+      <div class="bubble">${escapeHtml(data.text)}</div>
+    `;
+  }
+  $('messages').appendChild(div);
+  if (scroll) $('messages').scrollTop = $('messages').scrollHeight;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+/* ========== 发送 ========== */
+function send() {
+  const text = $('input').value.trim();
+  if (!text || !socket) return;
+  if (currentRoom === 'public') {
+    socket.emit('message', text);
+  } else {
+    socket.emit('private', { to: currentRoom, text });
+  }
+  $('input').value = '';
+}
+$('send').onclick = send;
+$('input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') send();
+});
+
+/* ========== 启动 ========== */
+const savedToken = localStorage.getItem('chat_token');
+const savedName = localStorage.getItem('chat_username');
+if (savedToken && savedName) {
+  myNick = savedName;
+  $('loginBox').style.display = 'none';
+  $('chatBox').style.display = 'block';
+  $('myName').textContent = savedName;
+  $('myAvatar').textContent = savedName.charAt(0).toUpperCase();
+  connectSocket(savedToken);
+}
+</script>
+</body>
+</html>
